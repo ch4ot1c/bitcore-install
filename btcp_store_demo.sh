@@ -23,14 +23,16 @@ make_swapfile() {
 
 # You must have enough memory for the BTCP build to succeed.
 
-local PREV=$PWD
-cd /
-sudo dd if=/dev/zero of=swapfile bs=1M count=$1
-sudo mkswap swapfile
+if [ -e /swapfile]
+then
+  sudo swapoff /swapfile
+fi
+
+sudo dd if=/dev/zero of=/swapfile bs=1M count=$1
+sudo mkswap /swapfile
 sudo chmod 0600 /swapfile
-sudo swapon swapfile
-echo "/swapfile none swap sw 0 0" | sudo tee -a etc/fstab > /dev/null
-cd $PREV
+sudo swapon /swapfile
+echo "/swapfile none swap sw 0 0" | sudo tee -a /etc/fstab > /dev/null
 
 }
 
@@ -236,9 +238,9 @@ EOF
 
 }
 
-install_bower_browserify_uglify_js_libs() {
-  echo "Globally installing bower, browserify, uglify"
-  npm install -g bower browserify uglify
+cp_storedemo_js_static() {
+
+  # static/ dir setup
 
   cd ~/btcp-explorer/node_modules/store-demo
   bower install
@@ -247,7 +249,14 @@ install_bower_browserify_uglify_js_libs() {
   cd node_modules/bitcore-lib
   browserify --require ./index.js:bitcore-lib -o bitcore-lib.js
   uglify -s bitcore-lib.js -o bitcore-lib.min.js
+  mkdir ~/btcp-explorer/node_modules/store-demo/static/js/bitcore-lib
   cp {bitcore-lib.js,bitcore-lib.min.js} ~/btcp-explorer/node_modules/store-demo/static/js/bitcore-lib
+
+  # Also grab socket.io-client (from bitcore-node)
+  cd ~/btcp-explorer/node_modules/bitcore-node/node_modules/socket.io-client
+  mkdir ~/btcp-explorer/node_modules/store-demo/static/js/socket.io-client
+  cp dist/socket.io.min.js ~/btcp-explorer/node_modules/store-demo/static/js/socket.io-client
+
 }
 
 
@@ -291,13 +300,16 @@ fetch_btcp_blockchain
 
 install_nvm_npm
 
+echo "Installing bower, browserify, uglify"
+npm install -g bower browserify uglify
+
 install_mongodb
 
 cd ~
 
 install_bitcore
 
-install_bower_browserify_uglify_js_libs
+cp_storedemo_js_static
 
 cd ~
 
